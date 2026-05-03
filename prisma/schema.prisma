@@ -1,0 +1,120 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Tenant {
+  id        Int      @id @default(autoincrement())
+  name      String
+  slug      String   @unique
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  members         Member[]
+  memberships     Membership[]
+  packages        Package[]
+  discounts       Discount[]
+  earnRules       EarnRule[]
+  loyaltySettings LoyaltySettings[]
+}
+
+model Member {
+  id            Int                  @id @default(autoincrement())
+  tenantId      Int
+  tenant        Tenant               @relation(fields: [tenantId], references: [id])
+  name          String
+  phone         String
+  email         String?
+  dob           DateTime?
+  membershipId  Int?
+  membership    Membership?          @relation(fields: [membershipId], references: [id])
+  loyaltyPoints Int                  @default(0)
+  transactions  LoyaltyTransaction[]
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt
+
+  @@unique([tenantId, phone])
+}
+
+model Discount {
+  id        Int       @id @default(autoincrement())
+  tenantId  Int
+  tenant    Tenant    @relation(fields: [tenantId], references: [id])
+  name      String
+  type      String    // PERCENTAGE | FLAT | BOGO | COMBO
+  value     String
+  appliesTo String[]
+  validFrom DateTime?
+  validTo   DateTime?
+  notes     String?
+  isActive  Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Package {
+  id            Int      @id @default(autoincrement())
+  tenantId      Int
+  tenant        Tenant   @relation(fields: [tenantId], references: [id])
+  name          String
+  price         Float
+  originalPrice Float?
+  badge         String?
+  services      String[]
+  soldCount     Int      @default(0)
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model Membership {
+  id          Int      @id @default(autoincrement())
+  tenantId    Int
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+  name        String
+  annualFee   Float
+  discountPct Float    @default(0)
+  capacity    Int?
+  benefits    String?
+  members     Member[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model EarnRule {
+  id        Int      @id @default(autoincrement())
+  tenantId  Int
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  name      String
+  pointsPer Float
+  appliesTo String
+  type      String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model LoyaltySettings {
+  id                 Int    @id @default(autoincrement())
+  tenantId           Int
+  tenant             Tenant @relation(fields: [tenantId], references: [id])
+  minPointsRedeem    Int    @default(100)
+  conversionRate     Float  @default(10)
+  maxRedeemPerVisit  Float  @default(500)
+  pointsExpiryMonths Int?
+}
+
+model LoyaltyTransaction {
+  id          Int      @id @default(autoincrement())
+  memberId    Int
+  member      Member   @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  type        String   // EARN | REDEEM
+  points      Int
+  source      String?
+  description String?
+  createdAt   DateTime @default(now())
+}
